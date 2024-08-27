@@ -20,6 +20,17 @@ Este aplicativo é uma API RESTful desenvolvida com Flask para gerenciar operaç
 
 Todos os endpoints são protegidos por autenticação JWT. O decorator `@token_required` deve ser aplicado para garantir que o usuário esteja autenticado.
 
+### Execução Local
+
+Para que o app seja executado localmente, certifique-se de que todas as dependências necessárias estão instaladas utilizando o comando:
+  ```
+  pip install -r requirements.txt
+  ```
+O app pode ser executado navegando até a pasta src e executando o app.py com:
+  ```
+  python app.py
+  ```
+
 ## Endpoints
 
 ### 1. **Health Check**

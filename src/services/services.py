@@ -3,11 +3,10 @@ import os
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from datetime import datetime
 from utils.validators import validate_operation_data
-from flask import request, jsonify
+from flask import jsonify
 from models import FinancialOperation, TransactionHistory, session
-from sqlalchemy import select, asc, desc
+from sqlalchemy import select
 
 class financialService:
     

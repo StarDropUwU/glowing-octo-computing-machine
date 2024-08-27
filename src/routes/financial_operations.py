@@ -1,6 +1,6 @@
 from auth import token_required
 from services.services import financialService
-from flask import request, jsonify
+from flask import request
 
 def create_routes(app):
     @app.route('/health', methods=['GET'])

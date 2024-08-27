@@ -1,7 +1,7 @@
 from datetime import datetime
 from sqlalchemy import Sequence, create_engine, Column, Integer, String, Float, DateTime
 from sqlalchemy.orm import declarative_base, sessionmaker
-from src.config import Config
+from config import Config
 
 db = create_engine(Config.SQLALCHEMY_DATABASE_URI,echo=True)
 
