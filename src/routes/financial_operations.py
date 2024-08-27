@@ -7,7 +7,7 @@ from config import Config
 def create_routes(app):
     @app.route('/health', methods=['GET'])
     def health_check():
-        return "Hemlo " + jwt.encode(payload={"data": "idunno"},key=Config.SECRET_KEY)
+        return jwt.encode(payload={"data": "idunno"},key=Config.SECRET_KEY)
     
     @app.route('/operations', methods=['POST'])
     @token_required

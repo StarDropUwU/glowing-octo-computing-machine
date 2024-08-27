@@ -18,17 +18,24 @@ Este aplicativo é uma API RESTful desenvolvida com Flask para gerenciar operaç
 
 ### Autenticação
 
-Todos os endpoints são protegidos por autenticação JWT. O decorator `@token_required` deve ser aplicado para garantir que o usuário esteja autenticado.
+Todos os endpoints são protegidos por autenticação JWT. O decorator `@token_required` deve ser aplicado para garantir que o usuário esteja autenticado. Basta utilizar Authorization=(Token JWT) nos headers e terá acesso
 
 ### Execução Local
 
-Para que o app seja executado localmente, certifique-se de que todas as dependências necessárias estão instaladas utilizando o comando:
+Para que o App seja executado localmente, certifique-se de que todas as dependências necessárias estão instaladas utilizando o comando:
   ```
   pip install -r requirements.txt
   ```
-O app pode ser executado navegando até a pasta src e executando o app.py com:
+O App pode ser executado navegando até a pasta src e executando o app.py com:
   ```
   python app.py
+  ```
+
+### Execução em Docker
+O App pode ser conteinerizado para execução em Docker. Para isso, acesse a pasta src e execute os comandos:
+  ```
+  docker-compose build
+  docker-compose up
   ```
 
 ## Endpoints
@@ -38,11 +45,11 @@ O app pode ser executado navegando até a pasta src e executando o app.py com:
 - **URL:** `/health`
 - **Método:** `GET`
 - **Descrição:** Verifica se o servidor está funcionando.
-- **Autenticação:** Requer token JWT.
+- **Autenticação:** Não tem autenticação, para fins de demonstação retorna um token JWT válido para uso.
 - **Resposta de Sucesso:**
-  ```html
-  <h1>Surprise, it Works!<h1>
-  ```
+```
+  [token JWT para uso]
+```
 
 ### 2. **Criar Operação**
 
