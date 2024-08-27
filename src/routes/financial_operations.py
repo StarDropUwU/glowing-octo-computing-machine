@@ -1,12 +1,13 @@
 from auth import token_required
 from services.services import financialService
 from flask import request
+import jwt
+from config import Config
 
 def create_routes(app):
     @app.route('/health', methods=['GET'])
-    @token_required
     def health_check():
-        return "<h1>Surprise, it Works!<h1>"
+        return "Hemlo " + jwt.encode(payload={"data": "idunno"},key=Config.SECRET_KEY)
     
     @app.route('/operations', methods=['POST'])
     @token_required

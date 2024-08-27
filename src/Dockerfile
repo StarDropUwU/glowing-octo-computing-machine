@@ -1,10 +1,17 @@
-FROM python:3.11-slim
+FROM python:3.12
 
-WORKDIR /app
+WORKDIR /src
 
-COPY requirements.txt requirements.txt
-RUN pip install -r requirements.txt
+COPY requirements.txt /src/requirements.txt
 
-COPY . .
+RUN pip install --no-cache-dir -r requirements.txt
 
-CMD ["flask", "run", "--host=0.0.0.0"]
+COPY . /src
+
+EXPOSE 5000
+
+ENV FLASK_APP=app.py
+ENV DATABASE_URL="postgresql://financial:strx4012@localhost:5432/postgres"
+ENV SECRET_KEY="qz27o8t5m9ocmufnafagnirm33ubc2sb"
+
+CMD ["python", "./app.py"]
