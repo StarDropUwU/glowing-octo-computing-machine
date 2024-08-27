@@ -1,0 +1,20 @@
+version: '3.7'
+
+services:
+  db:
+    image: postgres
+    environment:
+      POSTGRES_DB: financial_db
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+
+  web:
+    build: .
+    environment:
+      - DATABASE_URL=postgresql://user:password@db:5432/financial_db
+    ports:
+      - "5000:5000"
+    depends_on:
+      - db
