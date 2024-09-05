@@ -15,6 +15,7 @@ class FinancialOperation(Base):
     valor = Column(Float, nullable=False)
     data = Column(DateTime, default=datetime.now())
     descricao = Column(String(200))
+    """Modelo de dados usado para registro das operações financeiras."""
 
     def create_exportable(self):
         return {
@@ -24,6 +25,7 @@ class FinancialOperation(Base):
             'data': self.data,
             'descricao': self.descricao
         }
+    """Método para converter o objeto da operação financeira em um dicionário à ser retornado no fim das operações."""
     
 class TransactionHistory(Base):
     __tablename__ = "transactionHistory"
@@ -31,7 +33,7 @@ class TransactionHistory(Base):
     operation_id = Column(Integer, nullable=False)
     timestamp = Column(DateTime, default=datetime.now)
     mudancas = Column(String(200))
-
+    """Modelo de dados usado para registro do histórico de mudanças das operações financeiras."""
 
 Base.metadata.create_all(db)
 

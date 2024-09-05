@@ -16,5 +16,8 @@ class TokenRequired:
         except:
             return jsonify({"error": "Invalid Token"}), 403
         return self.f(*args, **kwargs)
-
+"""
+A classe TokenRequired é responsável por realizar a autenticação JWT usando de todas as rotas decoradas com esta função.
+Quando uma requisição chega à uma rota decorada com esta função, o token JWT presente na cabeçalho da requisição é verificado. Caso o token seja válido, a função decorada é chamada. Caso contrário, um erro 403 é retornado, indicando que o token está inválido ou não está presente na requisição.
+"""
 
