@@ -8,7 +8,6 @@ services:
     volumes:
       - .:/src
     environment:
-      - SECRET_KEY=qz27o8t5m9ocmufnafagnirm33ubc2sb
       - FLASK_ENV=development
       - DATABASE_URL=postgresql://financial:strx4012@db:5432/postgres
     depends_on:
