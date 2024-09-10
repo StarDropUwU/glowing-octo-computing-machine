@@ -1,70 +1,127 @@
-from auth import TokenRequired
-from services.services import FinancialService
-from flask import request, jsonify
+from auth import token_required
+from services.financial_service import FinancialService
+from flask import request, jsonify, Blueprint
 from flask.views import MethodView
 import jwt
 from config import Config
 
+# Definindo os blueprints para os endpoints de health check e operações
+health_bp = Blueprint('health', __name__)
+operations_bp = Blueprint('operations', __name__)
 
-class HealthCheck(MethodView):
-    """Classe definindo uma rota de Health Check, de momento retorna um token JWT válido."""
-    def create_health_check_route(app):
-        @app.route('/health', methods=['GET'])
-        def get():
-            token = jwt.encode(payload={"data": "idunno"}, key=Config.SECRET_KEY)
-            return jsonify(token=token)
+class HealthCheck:
+    """
+    Endpoint para verificação de saúde do sistema.
+    Retorna um token JWT válido para fins de health check.
+    """
 
-
-class OperationsAPI(MethodView):
-    def create_routes(app):
-        decorators = [TokenRequired]
-
-        def get_json_data():
-            return request.get_json()
-
-        def get_pagination_params():
-            page = request.args.get('page', 1, type=int)
-            per_page = request.args.get('per_page', 10, type=int)
-            return page, per_page
+    @staticmethod
+    @health_bp.route('/health', methods=['GET'])
+    def get():
         """
-        Classe definindo todas as rotas para operações financeiras.
-            - A função create_routes() é chamada em app.py e é responsável por aplicar os decorators em cada endpoint.
-            - Aplica o decorator TokenRequired para garantir que apenas usuários autenticados podem acessar as rota
-            - A função get_json_data() extrai os dados JSON da requisição
+        Gera e retorna um token JWT para verificação da saúde da aplicação.
+
+        :return: JSON contendo o token JWT.
         """
+        token = jwt.encode(payload={"purpose": "health_check"}, key=Config.SECRET_KEY)
+        return jsonify(token=token)
 
-        @app.route('/operations', methods=['POST'])
-        def post():
-            data = get_json_data()
-            return FinancialService.post(data)
-        """POST: Rota para registro de uma única operação financeira."""
-        
-        @app.route('/operations/bulk', methods=['POST'])
-        def post_bulk():
-            data = request.get_json()
-            return FinancialService.post_bulk(data)
-        """POST: Rota para registro de várias operações financeiras em lote."""
-            
-        @app.route('/operations/<int:id>', methods=['GET'])
-        def get_operation(id):
-            return FinancialService.get_operation(id)
-        """GET: Rota para consulta de uma operação financeira específica à partir de seu id."""
-        
-        @app.route('/operations', methods=['GET'])
-        def get_operations():
-            page, per_page = get_pagination_params()
-            data = get_json_data()
-            return FinancialService.get_operations(page, per_page, data)
-        """GET: Rota para consulta paginada de várias operações financeiras à partir de filtros"""
+class OperationsAPI:
+    """
+    API para operações financeiras, incluindo criação, atualização, exclusão e listagem.
+    Todos os endpoints requerem um token JWT válido para autenticação.
+    """
 
-        @app.route('/operations/<int:id>', methods=['PUT'])
-        def put(id):
-            data = get_json_data()
-            return FinancialService.put(id, data)
-        """PUT: Rota para atualizar uma operação financeira específica à partir de seu id"""
-        
-        @app.route('/operations/<int:id>', methods=['DELETE'])
-        def delete(id):
-            return FinancialService.delete(id)
-        """DELETE: Rota para deletar uma operação financeira"""
-            
+    @staticmethod
+    def get_json_data():
+        """
+        Extrai e retorna os dados JSON do corpo da requisição.
+
+        :return: Dados em formato JSON.
+        """
+        return request.get_json()
+
+    @staticmethod
+    def get_pagination_params():
+        """
+        Extrai e retorna os parâmetros de paginação (page, per_page) da requisição.
+
+        :return: Uma tupla contendo page e per_page.
+        """
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 10, type=int)
+        return page, per_page
+
+    @staticmethod
+    @operations_bp.route('/operations', methods=['POST'])
+    @token_required
+    def create_operation():
+        """
+        Cria uma operação financeira individual.
+
+        :return: Resposta JSON com o status da criação da operação.
+        """
+        data = OperationsAPI.get_json_data()
+        return FinancialService.create_operation(data)
+
+    @staticmethod
+    @operations_bp.route('/operations/bulk', methods=['POST'])
+    @token_required
+    def create_bulk_operations():
+        """
+        Cria múltiplas operações financeiras em lote.
+
+        :return: Resposta JSON com o status da criação das operações em lote.
+        """
+        data = OperationsAPI.get_json_data()
+        return FinancialService.create_bulk_operations(data)
+
+    @staticmethod
+    @operations_bp.route('/operations/<int:operation_id>', methods=['GET'])
+    @token_required
+    def get_operation(operation_id):
+        """
+        Recupera uma operação financeira específica pelo seu ID.
+
+        :param operation_id: ID da operação a ser recuperada.
+        :return: Resposta JSON com os dados da operação ou erro se não for encontrada.
+        """
+        return FinancialService.get_operation(operation_id)
+
+    @staticmethod
+    @operations_bp.route('/operations', methods=['GET'])
+    @token_required
+    def get_operations():
+        """
+        Recupera uma lista paginada de operações financeiras com filtros opcionais.
+
+        :return: Resposta JSON com a lista de operações financeiras filtradas.
+        """
+        page, per_page = OperationsAPI.get_pagination_params()
+        filters = OperationsAPI.get_json_data() or {}  # Garantir que o filtro seja um dicionário vazio se não houver dados
+        return FinancialService.get_operations(page, per_page, filters)
+
+    @staticmethod
+    @operations_bp.route('/operations/<int:operation_id>', methods=['PUT'])
+    @token_required
+    def update_operation(operation_id):
+        """
+        Atualiza uma operação financeira específica pelo seu ID.
+
+        :param operation_id: ID da operação a ser atualizada.
+        :return: Resposta JSON com o status da atualização.
+        """
+        data = OperationsAPI.get_json_data()
+        return FinancialService.update_operation(operation_id, data)
+
+    @staticmethod
+    @operations_bp.route('/operations/<int:operation_id>', methods=['DELETE'])
+    @token_required
+    def delete_operation(operation_id):
+        """
+        Exclui uma operação financeira específica pelo seu ID.
+
+        :param operation_id: ID da operação a ser excluída.
+        :return: Resposta JSON confirmando a exclusão da operação.
+        """
+        return FinancialService.delete_operation(operation_id)

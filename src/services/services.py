@@ -1,35 +1,56 @@
 import sys
 import os
+from flask import jsonify
+from sqlalchemy import select
+from utils.validators import validate_operation_data
+from models import FinancialOperation, TransactionHistory, session
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from utils.validators import validate_operation_data
-from flask import jsonify
-from models import FinancialOperation, TransactionHistory, session
-from sqlalchemy import select
 
 class FinancialService:
     """
     Classe de serviço para operações financeiras.
-    Todas as operações são salvas no banco de dados usando SQLAlchemy, modelos de dados definidos em src/models.py.
-    As operações são chamadas pelos endpoints de post, post_bulk, get_operation, get_operations, put e delete definidos em 'src/routes/financial_operations.py'.
+
+    Esta classe contém métodos para realizar operações CRUD em dados financeiros, utilizando modelos SQLAlchemy e integração com o banco de dados.
+    As operações incluem criação, leitura, atualização e exclusão, além de operações em lote.
     """
+
+    @staticmethod
     def post(data):
+        """
+        Registra uma nova operação financeira no banco de dados.
+
+        :param data: Dicionário contendo os dados da operação.
+        :return: Resposta JSON da operação criada ou erro de validação de dados.
+        """
         if not validate_operation_data(data):
             return jsonify({"error": "Invalid data"}), 400
+
         operation = FinancialOperation(**data)
         session.add(operation)
         session.commit()
-        history = TransactionHistory()
-        history.operation_id = operation.id
-        history.mudancas = "Criado"
+
+        # Cria um registro no histórico de transações
+        history = TransactionHistory(operation_id=operation.id, mudancas="Criado")
         session.add(history)
         session.commit()
+
         return jsonify(operation.create_exportable()), 200
-    """POST: Registra uma nova operação financeira no banco de dados, recebendo somente 'data', que deve conter as informações da operação à ser registrada."""
-    
+
+    @staticmethod
     def get_operations(page, per_page, data):
+        """
+        Retorna uma lista paginada de operações financeiras, com filtros opcionais.
+
+        :param page: Número da página a ser retornada.
+        :param per_page: Número de operações por página.
+        :param data: Dicionário contendo filtros opcionais (tipo_operacao, valor, descricao, data).
+        :return: Resposta JSON com a lista de operações filtradas.
+        """
         stmt = select(FinancialOperation)
+
+        # Aplica filtros com base nos dados fornecidos
         if "tipo_operacao" in data and data["tipo_operacao"]:
             stmt = stmt.where(FinancialOperation.tipo_operacao == data["tipo_operacao"])
         if "valor" in data and data["valor"] is not None:
@@ -38,89 +59,127 @@ class FinancialService:
             stmt = stmt.where(FinancialOperation.descricao.contains(data["descricao"]))
         if "data" in data and data["data"]:
             stmt = stmt.where(FinancialOperation.data == data["data"])
-        stmt.limit(per_page).offset((page-1)*per_page)
+
+        # Paginação
+        stmt = stmt.limit(per_page).offset((page - 1) * per_page)
         operations = session.scalars(stmt)
-        output = []
-        for operation in operations:
-         output.append(operation.create_exportable())
+
+        # Cria a lista de resposta
+        output = [operation.create_exportable() for operation in operations]
+
         return jsonify(output), 200
-    """GET: Retorna uma lista paginada de operações financeiras recebendo:
-        - page: número da página a ser retornada
-        - per_page: número de operações por página
-        - data: dicionário contendo filtros de data (se houver, caso não seja recebido, retorna todas as operações de acordo com 'page' e 'per_page')
-    '"""
-    
+
+    @staticmethod
     def get_operation(id):
+        """
+        Retorna uma operação financeira específica.
+
+        :param id: ID da operação a ser recuperada.
+        :return: Resposta JSON com os dados da operação ou erro se não encontrada.
+        """
         stmt = select(FinancialOperation).where(FinancialOperation.id == id)
-        operations = session.scalars(stmt).one_or_none()
-        if operations == None:
-            return jsonify({"error": "Nenhuma operacao encontrada"}), 404
-        return jsonify(operations.create_exportable()), 200
-    """GET: Retorna uma operação financeira específica recebendo somente o 'id' da operação."""
-    
+        operation = session.scalars(stmt).one_or_none()
+
+        if operation is None:
+            return jsonify({"error": "Nenhuma operação encontrada"}), 404
+
+        return jsonify(operation.create_exportable()), 200
+
+    @staticmethod
     def put(id, data):
+        """
+        Atualiza uma operação financeira específica.
+
+        :param id: ID da operação a ser atualizada.
+        :param data: Dicionário contendo os novos dados da operação.
+        :return: Resposta JSON da operação atualizada ou erro de validação.
+        """
         if not validate_operation_data(data):
             return jsonify({"error": "Invalid data"}), 400
+
         stmt = select(FinancialOperation).where(FinancialOperation.id == id)
         operation = session.scalars(stmt).one_or_none()
-        if operation == None:
-            return jsonify({"error": "Nenhuma operacao encontrada"}), 404
-        if data["tipo_operacao"] is not None or data["tipo_operacao"] != '':
+
+        if operation is None:
+            return jsonify({"error": "Nenhuma operação encontrada"}), 404
+
+        # Atualiza os campos da operação
+        if data.get("tipo_operacao"):
             operation.tipo_operacao = data["tipo_operacao"]
-        if data["valor"] is not None:
+        if data.get("valor") is not None:
             operation.valor = data["valor"]
-        if data["descricao"] is not None or data["descricao"] != '':
+        if data.get("descricao"):
             operation.descricao = data["descricao"]
+
         session.commit()
-        history = TransactionHistory()
-        history.operation_id = operation.id
-        history.mudancas = "Alterado"
+
+        # Atualiza o histórico
+        history = TransactionHistory(operation_id=operation.id, mudancas="Alterado")
         session.add(history)
         session.commit()
+
         return jsonify(operation.create_exportable()), 200
-    """PUT: Atualiza uma operação financeira específica recebendo:
-    - id: id da operação a ser atualizada.
-    - data: dados à serem atualizados da operação mencionada.
-    """
-    
+
+    @staticmethod
     def delete(id):
+        """
+        Deleta uma operação financeira específica.
+
+        :param id: ID da operação a ser deletada.
+        :return: Resposta JSON confirmando a exclusão ou erro se não encontrada.
+        """
         stmt = select(FinancialOperation).where(FinancialOperation.id == id)
         operation = session.scalars(stmt).one_or_none()
+
         if operation is None:
             return jsonify({"error": "Operação não encontrada"}), 404
+
         session.delete(operation)
         session.commit()
-        history = TransactionHistory()
-        history.operation_id = operation.id
-        history.mudancas = "Deletado"
+
+        # Registra a exclusão no histórico
+        history = TransactionHistory(operation_id=operation.id, mudancas="Deletado")
         session.add(history)
         session.commit()
-        return jsonify({"success":f'Operação de id {id} deletada com sucesso'}), 200
-    """DELETE: Deleta uma operação financeira específica recebendo somente o'id' da operação à ser deletada."""
-    
+
+        return jsonify({"success": f'Operação de id {id} deletada com sucesso'}), 200
+
+    @staticmethod
     def post_bulk(data):
-        additions = []
-        valids = []
-        invalids = []
-        historyl = []
-        if len(data) <= 0:
+        """
+        Registra várias operações financeiras no banco de dados.
+
+        :param data: Lista de dicionários contendo os dados de cada operação.
+        :return: Resposta JSON indicando o sucesso ou falha na inserção de cada operação.
+        """
+        if not data:
             return jsonify({"error": "Invalid data: no items in List"}), 400
+
+        additions = []
+        invalids = []
+        history_list = []
+
+        # Valida e prepara as operações
         for op in data:
             if not validate_operation_data(op):
                 invalids.append(op)
                 continue
             operation = FinancialOperation(**op)
             additions.append(operation)
+
         session.add_all(additions)
         session.commit()
-        for i in additions:
-            valids.append(i.create_exportable())
-            history = TransactionHistory()
-            history.operation_id = i.id
-            history.mudancas = "Criado"
-            historyl.append(history)
-        session.add_all(historyl)
+
+        # Registra histórico para cada operação criada
+        for operation in additions:
+            history = TransactionHistory(operation_id=operation.id, mudancas="Criado")
+            history_list.append(history)
+
+        session.add_all(history_list)
         session.commit()
-        return jsonify({"success": f'Operations {valids} added, could not add {invalids} due to bad data'}), 200
-    """POST_BULK: Registra várias novas operações financeiras no banco de dados, recebendo em 'data' um array contendo as informações das operações à serem registradas."""
-    
+
+        valid_operations = [op.create_exportable() for op in additions]
+
+        return jsonify({
+            "success": f'Operações {valid_operations} adicionadas, falha em adicionar {invalids} devido a dados inválidos'
+        }), 200
