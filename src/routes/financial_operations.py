@@ -1,5 +1,5 @@
 from auth import token_required
-from services.financial_service import FinancialService
+from services.services import FinancialService
 from flask import request, jsonify, Blueprint
 from flask.views import MethodView
 import jwt
@@ -62,7 +62,7 @@ class OperationsAPI:
         :return: Resposta JSON com o status da criação da operação.
         """
         data = OperationsAPI.get_json_data()
-        return FinancialService.create_operation(data)
+        return FinancialService.post(data)
 
     @staticmethod
     @operations_bp.route('/operations/bulk', methods=['POST'])
@@ -74,7 +74,7 @@ class OperationsAPI:
         :return: Resposta JSON com o status da criação das operações em lote.
         """
         data = OperationsAPI.get_json_data()
-        return FinancialService.create_bulk_operations(data)
+        return FinancialService.post_bulk(data)
 
     @staticmethod
     @operations_bp.route('/operations/<int:operation_id>', methods=['GET'])
@@ -112,7 +112,7 @@ class OperationsAPI:
         :return: Resposta JSON com o status da atualização.
         """
         data = OperationsAPI.get_json_data()
-        return FinancialService.update_operation(operation_id, data)
+        return FinancialService.put(operation_id, data)
 
     @staticmethod
     @operations_bp.route('/operations/<int:operation_id>', methods=['DELETE'])
@@ -124,4 +124,4 @@ class OperationsAPI:
         :param operation_id: ID da operação a ser excluída.
         :return: Resposta JSON confirmando a exclusão da operação.
         """
-        return FinancialService.delete_operation(operation_id)
+        return FinancialService.delete(operation_id)
