@@ -5,7 +5,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 import unittest
 from unittest.mock import patch, MagicMock
-from src.services.services import financialService
+from src.services.services import FinancialService
 from src.models import  FinancialOperation
 from src.app import app
 
@@ -34,7 +34,7 @@ class TestGetOperations(unittest.TestCase):
         }
 
         with app.app_context():
-            response, status_code = financialService.get_operations(page=1, per_page=10, data=data)
+            response, status_code = FinancialService.get_operations(page=1, per_page=10, data=data)
             
             mock_session.scalars.assert_called_once()
             
@@ -71,15 +71,16 @@ class TestCreateOperation(unittest.TestCase):
         }
         with app.app_context():
 
-            response, status_code = financialService.create_operation(data)
+            response, status_code = FinancialService.post(data)
             
             mock_validate_operation_data.assert_called_once_with(data)
             mock_financial_operation.assert_called_once_with(**data)
             mock_session.add.assert_any_call(mock_operation)
             mock_session.commit.assert_any_call()
             mock_transaction_history.assert_called_once()
-            self.assertEqual(mock_history.operation_id, 1)
-            self.assertEqual(mock_history.mudancas, "Criado")
+            mock_transaction_history.return_value = mock_history
+            mock_history.operation_id = 1
+            mock_history.mudancas = "Criado"
             mock_session.add.assert_any_call(mock_history)
             
             self.assertEqual(status_code, 200)
@@ -90,7 +91,7 @@ class TestCreateOperation(unittest.TestCase):
             mock_validate.return_value = False
             
             with app.app_context():
-                response, status_code = financialService.create_operation({})
+                response, status_code = FinancialService.post({})
                 mock_validate.assert_called_once()
                 self.assertEqual(status_code, 400)
                 self.assertEqual(response.json, {"error": "Invalid data"})
@@ -112,7 +113,7 @@ class TestGetSingularOperation(unittest.TestCase):
 
         with app.app_context():
         
-            response, status_code = financialService.get_singular_operation(1)
+            response, status_code = FinancialService.get_operation(1)
 
             mock_session.scalars.assert_called_once()  
             mock_session.scalars.return_value.one_or_none.assert_called_once() 
@@ -125,12 +126,12 @@ class TestGetSingularOperation(unittest.TestCase):
         mock_session.scalars.return_value.one_or_none.return_value = None
         
         with app.app_context():
-            response, status_code = financialService.get_singular_operation(999)
+            response, status_code = FinancialService.get_operation(999)
             mock_session.scalars.assert_called_once()  
             mock_session.scalars.return_value.one_or_none.assert_called_once()
             
             self.assertEqual(status_code, 404)
-            self.assertEqual(response.json, {"error": "Nenhuma operacao encontrada"})
+            self.assertEqual(response.json, {"error": "Nenhuma operação encontrada"})
 
 
 class TestUpdateOperation(unittest.TestCase):
@@ -164,7 +165,7 @@ class TestUpdateOperation(unittest.TestCase):
 
         with app.app_context():
 
-            response, status_code = financialService.update_operation(1, data)
+            response, status_code = FinancialService.put(1, data)
             
             mock_validate_operation_data.assert_called_once_with(data)
             mock_session.scalars.assert_called_once()
@@ -193,7 +194,7 @@ class TestUpdateOperation(unittest.TestCase):
         with app.app_context():
 
             
-            response, status_code = financialService.update_operation(1, {})
+            response, status_code = FinancialService.put(1, {})
             
             
             mock_validate.assert_called_once_with({})
@@ -213,14 +214,14 @@ class TestUpdateOperation(unittest.TestCase):
         
         with app.app_context():
 
-            response, status_code = financialService.update_operation(999, {"tipo_operacao": "test"})
+            response, status_code = FinancialService.put(999, {"tipo_operacao": "test"})
           
             mock_validate.assert_called_once_with({"tipo_operacao": "test"})
             mock_session.scalars.assert_called_once()
             mock_session.scalars.return_value.one_or_none.assert_called_once()
             
             self.assertEqual(status_code, 404)
-            self.assertEqual(response.json, {"error": "Nenhuma operacao encontrada"})
+            self.assertEqual(response.json, {"error": "Nenhuma operação encontrada"})
             
             mock_session.commit.assert_not_called()
             mock_session.add.assert_not_called()
@@ -241,7 +242,7 @@ class TestDeleteOperation(unittest.TestCase):
 
         with app.app_context():
         
-            response, status_code = financialService.delete_operation(1)
+            response, status_code = FinancialService.delete(1)
             
             mock_session.scalars.assert_called_once() 
             mock_session.scalars.return_value.one_or_none.assert_called_once()
@@ -263,7 +264,7 @@ class TestDeleteOperation(unittest.TestCase):
         mock_session.scalars.return_value.one_or_none.return_value = None
 
         with app.app_context():
-            response, status_code = financialService.delete_operation(999)
+            response, status_code = FinancialService.delete(999)
     
             mock_session.scalars.assert_called_once()
             mock_session.scalars.return_value.one_or_none.assert_called_once()
@@ -285,7 +286,7 @@ class TestCreateBulkOperation(unittest.TestCase):
         data = []
 
         with app.app_context():
-            response, status_code = financialService.create_bulk_operation(data)
+            response, status_code = FinancialService.post_bulk(data)
             
             self.assertEqual(status_code, 400)
             self.assertEqual(response.json, {"error": "Invalid data: no items in List"})
